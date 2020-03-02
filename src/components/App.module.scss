@@ -1,0 +1,13 @@
+.content {
+	display: flex;
+	height: 500vh;
+	width: 100%;
+}
+
+.message {
+	position: fixed;
+	z-index: 5;
+	top: 1rem;
+	left: 1rem;
+	font-size: 2em;
+}
