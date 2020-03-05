@@ -1,9 +1,9 @@
 import { Reducer } from "react";
-import { Point, defaultPoint } from "../core/point";
+import { Point, defaultPoint } from "../../core/point";
 
 export interface ScrollPositionPayload {
-	prevPos: Point;
-	currPos: Point;
+	normalizePrevPosition: Point;
+	normalizeCurrPosition: Point;
 }
 
 export interface ScrollPositionAction {
@@ -17,8 +17,8 @@ export interface ScrollPositionState {
 
 const defaultState: ScrollPositionState = {
 	scrollPosition: {
-		prevPos: defaultPoint,
-		currPos: defaultPoint
+		normalizePrevPosition: defaultPoint,
+		normalizeCurrPosition: defaultPoint
 	}
 };
 

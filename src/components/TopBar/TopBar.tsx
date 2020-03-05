@@ -1,22 +1,19 @@
 import React, { FC, useEffect } from "react";
 import styles from "./TopBar.module.scss";
-import { useSelector, useDispatch } from "react-redux";
-import { CombinedReducers } from "../../reducers";
-import { setMessage } from "../../actions/setMessage";
-import { ScrollPositionPayload } from "../../reducers/scrollPositionReducer";
+import { useDispatch } from "react-redux";
+import { setMessage } from "../../redux/actions/setMessage";
+import { useScrollStore } from "../../redux/reducers";
 
 const NON_VISIBLE_TRESHOLD = 0.2;
 const OPACITY_TRESHOLD = 0.6;
 
+const mapRange = (value: number, minIn: number, maxIn: number, minOut: number, maxOut: number) =>
+	(value - minIn) / (maxIn - minIn) * (maxOut - minOut) + minOut;
+
 const getOpacityFromYPosition = (YPosition: number) => {
-	if (YPosition < NON_VISIBLE_TRESHOLD) return 0;
+	const boundYPosition = Math.min(Math.max(YPosition, NON_VISIBLE_TRESHOLD), OPACITY_TRESHOLD);
 
-	if (YPosition > NON_VISIBLE_TRESHOLD && YPosition < OPACITY_TRESHOLD) {
-		const range = OPACITY_TRESHOLD - NON_VISIBLE_TRESHOLD;
-		return (YPosition - NON_VISIBLE_TRESHOLD) / range;
-	}
-
-	return 1;
+	return mapRange(boundYPosition, NON_VISIBLE_TRESHOLD, OPACITY_TRESHOLD, 0, 1);
 };
 
 const fixDecimalPoint = (x: number) => {
@@ -24,23 +21,30 @@ const fixDecimalPoint = (x: number) => {
 }
 
 export const TopBar: FC = () => {
-	const scrollPosition = useSelector<CombinedReducers, ScrollPositionPayload>(state => state.scrollStore.scrollPosition);
+	//CR: Why not using the useScrollPosition hook here?
+	//Post CR: The useScrollPosition hook takes a container reference and use its scroller, so the other
+	//Post CR: option is to pass the container to here and then we would have a appContainerStore or something like that
+	const scrollPosition = useScrollStore(scrollState => scrollState.scrollPosition);
 
 	const dispatch = useDispatch();
 
 	useEffect(() => {
-		if (scrollPosition.currPos.y > OPACITY_TRESHOLD)
-			dispatch(setMessage(`You have reached ${fixDecimalPoint(scrollPosition.currPos.y * 100)}% of the page!`));
+		//CR: Not using {} for if, even when it has only one sentence is prone to errors
+		//POST CR: I found this interesting disccusion about it: https://softwareengineering.stackexchange.com/questions/16528/single-statement-if-block-braces-or-no
+		if (scrollPosition.normalizeCurrPosition.y > OPACITY_TRESHOLD) {
+			dispatch(setMessage(`You have reached ${fixDecimalPoint(scrollPosition.normalizeCurrPosition.y * 100)}% of the page!`));
+		}
 
-		if (scrollPosition.prevPos.y > OPACITY_TRESHOLD &&
-			scrollPosition.currPos.y < OPACITY_TRESHOLD)
+		if (scrollPosition.normalizePrevPosition.y > OPACITY_TRESHOLD &&
+			scrollPosition.normalizeCurrPosition.y < OPACITY_TRESHOLD) {
 			dispatch(setMessage(""));
+		}
 
 	}, [scrollPosition, dispatch]);
 
 	return (
 		<div className={styles.topBar}
-			style={{ opacity: getOpacityFromYPosition(scrollPosition.currPos.y) }}
+			style={{ opacity: getOpacityFromYPosition(scrollPosition.normalizeCurrPosition.y) }}
 		/>
 	);
 };

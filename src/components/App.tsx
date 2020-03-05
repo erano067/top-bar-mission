@@ -2,32 +2,37 @@ import React, { FC, useRef, useEffect, useState } from "react";
 import styles from "./App.module.scss";
 import { TopBar } from "./TopBar/TopBar";
 import { useScrollPosition } from "@n8tb1t/use-scroll-position";
-import { useDispatch, useSelector } from "react-redux";
-import { setScrollPosition } from "../actions/setScrollPosition";
-import { CombinedReducers } from "../reducers";
-import { Point } from "../core/point";
+import { useDispatch } from "react-redux";
+import { setScrollPosition } from "../redux/actions/setScrollPosition";
+import { useMessageStore } from "../redux/reducers";
+import { Point, defaultPoint } from "../core/point";
 
-const normalizeYScroll = (currPosition: Point, element: HTMLDivElement | null): number => {
-	if (!element) return 0;
-	return -currPosition.y / (element.offsetHeight - window.innerHeight);
+const normalizeScrollPoint = (currPosition: Point, element: HTMLDivElement | null): Point => {
+	//CR: I prefer return element? -currPosition.y / (element.offsetHeight - window.innerHeight) : 0, but it is only my personal taste
+	if (!element) return defaultPoint;
+
+	return {
+		x: currPosition.x / (element.offsetWidth - window.innerWidth),
+		y: -currPosition.y / (element.offsetHeight - window.innerHeight)
+	}
 }
 
 export const App: FC = () => {
 	const contentRef = useRef<HTMLDivElement>(null);
+	const [color, setColor] = useState(0);
 	const dispatch = useDispatch();
 
-	useScrollPosition(({ prevPos, currPos }) =>
+	useScrollPosition(({ prevPos, currPos }) => {
 		dispatch(setScrollPosition({
-			prevPos: { ...prevPos, y: normalizeYScroll(prevPos, contentRef.current) },
-			currPos: { ...currPos, y: normalizeYScroll(currPos, contentRef.current) }
-		})),
+			normalizePrevPosition: normalizeScrollPoint(prevPos, contentRef.current),
+			normalizeCurrPosition: normalizeScrollPoint(currPos, contentRef.current)
+		}))
+	},
 		[],
 		contentRef
 	);
 
-	const message = useSelector<CombinedReducers, string>(store => store.messageStore.message);
-
-	const [color, setColor] = useState(0);
+	const message = useMessageStore(messageState => messageState.message);
 
 	useEffect(() => {
 		const intervalId = setInterval(() => {
